@@ -1,7 +1,7 @@
 // Service worker: lets the app install and open instantly. Data always comes live from the server.
 const CACHE = 'tm-v1';
 const SHELL = ['./', './index.html', './config.js', './manifest.webmanifest',
-  './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png'];
+  './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)));

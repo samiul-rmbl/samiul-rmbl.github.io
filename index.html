@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>SCM Task Manager</title>
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="theme-color" content="#1f4fd1">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -193,7 +193,7 @@ async function init() {
 function loginView(msg) {
   $('#tabs').hidden = true; $('#fab').hidden = true; $('#who').textContent = '';
   $('#main').innerHTML = `<div class="login">
-    <img src="icons/icon-192.png" alt="">
+    <img src="icon-192.png" alt="">
     <h2>${esc((window.CONFIG && CONFIG.APP_NAME) || 'Task Manager')}</h2>
     <div class="hint">Paste the personal link your manager sent you (WhatsApp or email). You only need to do this once.</div>
     ${msg ? `<div class="hint" style="color:var(--red)">${esc(msg)}</div>` : ''}
