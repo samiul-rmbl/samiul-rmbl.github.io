@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SCM Task Manager</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="theme-color" content="#1f4fd1">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Tasks">
+<script src="config.js"></script>
+<style>
+:root{--bg:#f3f5fa;--card:#fff;--ink:#1b2232;--mut:#687187;--line:#e2e6ee;--brand:#1f4fd1;--brand2:#e9efff;--red:#d33b3b;--green:#17955a;--amber:#c98400;--wa:#25d366}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);padding-bottom:96px;-webkit-text-size-adjust:100%}
+.top{position:sticky;top:0;z-index:6;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:calc(12px + env(safe-area-inset-top)) 16px 12px;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.app{font-weight:700;font-size:17px}.who{font-size:12.5px;opacity:.85}
+.icon{background:rgba(255,255,255,.16);border:0;color:#fff;font-size:20px;width:40px;height:40px;border-radius:10px;cursor:pointer}
+.tabs{display:flex;background:#fff;border-bottom:1px solid var(--line)}
+.tabs button{flex:1;border:0;background:none;padding:13px;font-weight:600;color:var(--mut);border-bottom:3px solid transparent;cursor:pointer;font-size:15px}
+.tabs button.on{color:var(--brand);border-color:var(--brand)}
+main{max-width:1180px;margin:0 auto;padding:14px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}
+.stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px;text-align:left;cursor:pointer;font:inherit;color:inherit}
+.stat b{display:block;font-size:24px;line-height:1.1}.stat span{font-size:12px;color:var(--mut)}
+.stat.on{outline:2px solid var(--brand);background:var(--brand2)}.stat.red b{color:var(--red)}.stat.green b{color:var(--green)}
+.filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.filters input,.filters select{flex:1 1 170px;width:auto}
+input,select,textarea{font:inherit;padding:10px 11px;border:1px solid var(--line);border-radius:10px;background:#fff;width:100%;color:inherit}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--brand2);border-color:var(--brand)}
+.list{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:12px}
+.card{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--brand);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+.card.od{border-left-color:var(--red)}.card.closed{border-left-color:var(--green);opacity:.85}.card.inactive{opacity:.55}
+.row1{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.id{font-size:12px;color:var(--mut);font-weight:600;margin-right:auto}
+.title{font-weight:650;font-size:16px}
+.det{color:var(--mut);font-size:13.5px;white-space:pre-wrap}
+.meta{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12.5px;color:var(--mut)}
+.meta .red{color:var(--red);font-weight:600}.meta .green{color:var(--green);font-weight:600}
+.rem{background:#f6f7fb;border-radius:8px;padding:6px 9px;font-size:13px;white-space:pre-wrap}
+.acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.acts button{border:1px solid var(--line);background:#fff;border-radius:9px;padding:7px 10px;font:inherit;font-size:13px;cursor:pointer;color:inherit}
+.acts button.main{background:var(--brand);border-color:var(--brand);color:#fff}
+.acts button:hover{border-color:var(--brand)}
+.pill{font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:99px;background:#eef0f5;color:#445}
+.s-not-started{background:#eef0f5;color:#556}.s-on-process{background:#fff3da;color:#8a5a00}.s-on-hold{background:#f1e8ff;color:#6a3bb5}
+.s-done{background:#ddf5e8;color:#11744a}.s-cancelled{background:#fde4e4;color:#a12b2b}
+.pri{font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px;border:1px solid}
+.p-high{color:var(--red);border-color:#f2b9b9}.p-medium{color:var(--amber);border-color:#f0d9a6}.p-low{color:#5b6b85;border-color:#d4dae5}
+.empty{text-align:center;color:var(--mut);padding:40px 10px}
+.loading{text-align:center;color:var(--mut);padding:60px 10px}
+.err{background:#fff;border:1px solid #f2c4c4;color:var(--red);border-radius:12px;padding:20px;text-align:center;margin-top:30px}
+.hint{font-size:12.5px;color:var(--mut);margin:6px 0}
+.hint.box{background:#fff;border:1px dashed var(--line);border-radius:10px;padding:10px 12px;margin-bottom:12px}
+.fab{position:fixed;right:18px;bottom:22px;z-index:7;background:var(--brand);color:#fff;border:0;border-radius:99px;padding:15px 22px;font:inherit;font-weight:700;box-shadow:0 6px 18px rgba(31,79,209,.35);cursor:pointer}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;background:var(--brand);color:#fff;border:0;border-radius:10px;padding:11px 16px;font:inherit;font-weight:600;cursor:pointer;text-decoration:none}
+.btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+.btn.danger{background:#fff;color:var(--red);border:1px solid #f2c4c4}
+.btn.wa{background:var(--wa);color:#073b1d;width:100%;margin-top:10px}
+.btn.small{padding:8px 12px;font-size:13px}
+.overlay{position:fixed;inset:0;background:rgba(12,18,34,.45);display:flex;align-items:flex-end;justify-content:center;z-index:20}
+.sheet{background:#fff;width:100%;max-width:560px;max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;padding:18px 18px 22px}
+.sheet h3{margin:0 0 4px;font-size:18px}.sheet .sub{color:var(--mut);font-size:13px;margin-bottom:12px}
+.sheet label{display:block;font-size:13px;font-weight:600;color:#3a4357;margin:10px 0 0}
+.sheet label input,.sheet label select,.sheet label textarea{margin-top:5px;font-weight:400}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.checks{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px}
+.chk{display:flex!important;align-items:center;gap:7px;font-weight:500!important;margin:0!important}
+.chk input{width:18px;height:18px;margin:0!important}
+.btns{display:flex;gap:8px;align-items:center;margin-top:18px}.btns .sp{flex:1}
+.statusPick{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 4px}
+.statusPick label{margin:0;cursor:pointer}
+.statusPick input{display:none}
+.statusPick .pill{display:inline-block;padding:8px 13px;font-size:13px;border:2px solid transparent}
+.statusPick input:checked+.pill{border-color:var(--ink)}
+.res div{padding:6px 0;border-bottom:1px solid #f0f2f6;font-size:14px}
+.hist{list-style:none;padding:0;margin:8px 0 0}
+.hist li{border-left:3px solid var(--brand2);padding:4px 0 10px 12px}
+.hist small{color:var(--mut)}
+.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%) translateY(20px);background:#1b2232;color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;pointer-events:none;transition:.25s;z-index:30;max-width:90vw}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}.toast.err{background:var(--red)}
+.hbtns{display:flex;gap:6px}
+.icon.txt{width:auto;padding:0 12px;font-size:13.5px;font-weight:600}
+.login{max-width:440px;margin:40px auto;background:#fff;border:1px solid var(--line);border-radius:16px;padding:22px;text-align:center}
+.login h2{margin:6px 0}.login img{width:72px;height:72px;border-radius:16px}
+.login input{margin:14px 0 10px;text-align:center}
+.menu a,.menu button{display:block;width:100%;text-align:left;background:#fff;border:0;border-bottom:1px solid #f0f2f6;padding:14px 4px;font:inherit;color:inherit;text-decoration:none;cursor:pointer}
+body.busy .sheet button,body.busy .fab{pointer-events:none;opacity:.6}
+@media(min-width:700px){.overlay{align-items:center}.sheet{border-radius:18px}}
+@media(max-width:560px){.stats{grid-template-columns:repeat(2,1fr)}.list{grid-template-columns:1fr}.two{grid-template-columns:1fr}main{padding:12px 10px}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div><div class="app" id="appName">Task Manager</div><div class="who" id="who"></div></div>
+  <div class="hbtns">
+    <button class="icon txt" id="installBtn" hidden>⬇ Install</button>
+    <button class="icon" id="refresh" title="Refresh">⟳</button>
+    <button class="icon" id="menuBtn" title="Menu">☰</button>
+  </div>
+</header>
+<nav class="tabs" id="tabs" hidden>
+  <button data-tab="tasks" class="on">📋 Tasks</button>
+  <button data-tab="team">👥 Team</button>
+</nav>
+<main id="main"><div class="loading">Loading…</div></main>
+<button class="fab" id="fab" hidden>+ New Task</button>
+<div class="overlay" id="ov" hidden><div class="sheet" id="sheet"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const LS_KEY = 'tm_key', LS_CACHE = 'tm_cache';
+const store = {
+  get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} },
+  del: k => { try { localStorage.removeItem(k); } catch (e) {} }
+};
+function readKeyFromUrl() {
+  const u = new URL(location.href), k = u.searchParams.get('k');
+  if (!k) return '';
+  u.searchParams.delete('k');
+  history.replaceState(null, '', u.pathname + u.search + u.hash);
+  return k.trim();
+}
+let KEY = (() => {
+  const k = readKeyFromUrl();
+  if (k) { if (k !== store.get(LS_KEY)) store.del(LS_CACHE); store.set(LS_KEY, k); return k; }
+  return store.get(LS_KEY) || '';
+})();
+const $ = s => document.querySelector(s);
+const S = { d: null, tab: 'tasks', q: '', st: 'open', who: '' };
+const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const PRI = { High: 0, Medium: 1, Low: 2 };
+
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const slug = s => String(s).toLowerCase().replace(/[^a-z]+/g, '-');
+const fd = s => { if (!s) return ''; const p = s.split(' ')[0].split('-'); return p.length === 3 ? (+p[2]) + ' ' + MON[+p[1] - 1] + ' ' + p[0].slice(2) : s; };
+const isClosed = t => t.status === 'Done' || t.status === 'Cancelled';
+const opts = (arr, sel) => arr.map(v => `<option ${v === sel ? 'selected' : ''}>${esc(v)}</option>`).join('');
+const findTask = id => S.d.tasks.find(t => t.id === id);
+const findMember = n => (S.d.team || []).find(m => m.name === n);
+const activeTeam = () => (S.d.team || []).filter(m => m.active);
+
+/* ---------- server calls ---------- */
+async function call(action, payload) {
+  const url = (window.CONFIG && CONFIG.API_URL) || '';
+  if (!/^https:\/\/script\.google\.com\/.+\/exec$/.test(url)) throw new Error('API_URL in config.js is not set to your web app /exec address.');
+  let res;
+  try {
+    res = await fetch(url, { method: 'POST', redirect: 'follow', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ key: KEY, action: action, payload: payload || {} }) });
+  } catch (e) {
+    throw new Error(navigator.onLine ? 'Cannot reach the server. Please try again.' : 'You are offline. Connect to the internet and try again.');
+  }
+  const txt = await res.text();
+  let r;
+  try { r = JSON.parse(txt); } catch (e) { throw new Error('Unexpected server reply. Make sure the web app is deployed with access "Anyone".'); }
+  if (!r.ok) { const err = new Error(r.error || 'Server error'); err.auth = /invalid|has been reset|No access key/i.test(r.error || ''); throw err; }
+  if (r.data && r.data.state) store.set(LS_CACHE, JSON.stringify(r.data.state));
+  return r.data;
+}
+async function act(action, payload, msg) {
+  busy(true, msg);
+  try {
+    const r = await call(action, payload);
+    if (r && r.state) { S.d = r.state; render(); }
+    busy(false);
+    return (r && r.result != null) ? r.result : {};
+  } catch (e) {
+    busy(false); toast(e.message, true); return null;
+  }
+}
+async function init() {
+  if (!KEY) return loginView();
+  if (!S.d) { try { const c = JSON.parse(store.get(LS_CACHE) || 'null'); if (c) { S.d = c; render(); } } catch (e) {} }
+  try {
+    const r = await call('init');
+    S.d = r.state;
+    $('#appName').textContent = S.d.appName; document.title = S.d.appName;
+    render();
+  } catch (e) {
+    if (e.auth) { signOut(e.message); return; }
+    if (S.d) toast(e.message, true); else fatal(e.message);
+  }
+}
+
+/* ---------- sign-in (personal link / key) ---------- */
+function loginView(msg) {
+  $('#tabs').hidden = true; $('#fab').hidden = true; $('#who').textContent = '';
+  $('#main').innerHTML = `<div class="login">
+    <img src="icons/icon-192.png" alt="">
+    <h2>${esc((window.CONFIG && CONFIG.APP_NAME) || 'Task Manager')}</h2>
+    <div class="hint">Paste the personal link your manager sent you (WhatsApp or email). You only need to do this once.</div>
+    ${msg ? `<div class="hint" style="color:var(--red)">${esc(msg)}</div>` : ''}
+    <form id="lf"><input id="lk" placeholder="Paste your link or access key" autocomplete="off" required>
+    <button class="btn" style="width:100%">Open my tasks</button></form></div>`;
+  $('#lf').onsubmit = e => {
+    e.preventDefault();
+    const v = $('#lk').value.trim(), m = v.match(/[?&]k=([^&#\s]+)/);
+    KEY = decodeURIComponent(m ? m[1] : v);
+    if (!KEY) return;
+    store.del(LS_CACHE); store.set(LS_KEY, KEY);
+    $('#main').innerHTML = '<div class="loading">Loading…</div>';
+    init();
+  };
+}
+function signOut(msg) {
+  store.del(LS_KEY); store.del(LS_CACHE); KEY = ''; S.d = null; closeModal(); loginView(msg);
+}
+
+/* ---------- install & menu ---------- */
+let installEvt = null;
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; $('#installBtn').hidden = false; });
+window.addEventListener('appinstalled', () => { installEvt = null; $('#installBtn').hidden = true; toast('App installed ✓'); });
+async function doInstall() {
+  if (installEvt) { installEvt.prompt(); await installEvt.userChoice; installEvt = null; $('#installBtn').hidden = true; return; }
+  modal(`<h3>Install the app</h3>
+    ${isIOS ? '<p><b>iPhone / iPad (Safari):</b> tap the <b>Share</b> button ⬆️, then <b>Add to Home Screen</b>, then <b>Add</b>.</p><p class="hint">After it opens from the home screen, paste your link once.</p>'
+            : '<p><b>Android (Chrome):</b> tap ⋮ → <b>Install app</b> / <b>Add to Home screen</b>.</p><p><b>PC (Chrome / Edge):</b> click the install icon ⊕ in the address bar, or ⋮ / ⋯ → <b>Install</b>.</p>'}
+    <div class="btns"><span class="sp"></span><button class="btn ghost" data-close>Close</button></div>`);
+}
+function menuView() {
+  const me = S.d ? S.d.me : null;
+  modal(`<h3>Menu</h3>${me ? `<div class="sub">Signed in as <b>${esc(me.name)}</b>${me.role === 'admin' ? ' (Manager)' : ''}</div>` : ''}
+    <div class="menu">
+      ${isStandalone() ? '' : '<button id="mInstall">⬇ Install app on this device</button>'}
+      <button id="mRefresh">⟳ Refresh</button>
+      <button id="mOut">🚪 Sign out / switch user</button>
+    </div>
+    <div class="btns"><span class="sp"></span><button class="btn ghost" data-close>Close</button></div>`);
+  if ($('#mInstall')) $('#mInstall').onclick = doInstall;
+  $('#mRefresh').onclick = () => { closeModal(); $('#refresh').click(); };
+  $('#mOut').onclick = () => { if (confirm('Sign out from this device?')) signOut(); };
+}
+
+/* ---------- UI helpers ---------- */
+let toastT;
+function toast(msg, err) {
+  const t = $('#toast'); t.textContent = msg; t.className = 'toast show' + (err ? ' err' : '');
+  clearTimeout(toastT); toastT = setTimeout(() => t.className = 'toast', err ? 5000 : 2600);
+}
+function busy(on, msg) { document.body.classList.toggle('busy', on); if (on && msg) toast(msg); }
+function fatal(msg) { $('#main').innerHTML = `<div class="err"><b>Can't open the task manager</b><br><br>${esc(msg)}</div>`; }
+function modal(html) { $('#sheet').innerHTML = html; $('#ov').hidden = false; }
+function closeModal() { $('#ov').hidden = true; $('#sheet').innerHTML = ''; }
+
+/* ---------- render ---------- */
+function render() {
+  const d = S.d, admin = d.me.role === 'admin';
+  $('#who').textContent = (admin ? 'Manager · ' : '') + d.me.name;
+  $('#tabs').hidden = !admin;
+  document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === S.tab));
+  $('#fab').hidden = !admin;
+  $('#fab').textContent = S.tab === 'team' ? '+ Add Member' : '+ New Task';
+  $('#main').innerHTML = (admin && S.tab === 'team') ? teamView() : tasksView();
+}
+
+function tasksView() {
+  const d = S.d, admin = d.me.role === 'admin', T = d.tasks;
+  const n = { open: T.filter(t => !isClosed(t)).length, overdue: T.filter(t => t.overdue).length, Done: T.filter(t => t.status === 'Done').length, all: T.length };
+  const stat = (k, label, cls) => `<button class="stat ${cls || ''} ${S.st === k ? 'on' : ''}" data-st="${k}"><b>${n[k]}</b><span>${label}</span></button>`;
+  const names = admin ? [...new Set([...(d.team || []).map(m => m.name), ...T.map(t => t.assignee)])].filter(Boolean) : [];
+  return `<div class="stats">${stat('open', 'Open')}${stat('overdue', 'Overdue', 'red')}${stat('Done', 'Done', 'green')}${stat('all', 'All tasks')}</div>
+    <div class="filters">
+      <input id="q" type="search" placeholder="🔍 Search task, ID, remarks…" value="${esc(S.q)}">
+      <select id="fst">${[['open', 'Open tasks'], ['overdue', 'Overdue'], ['all', 'All'], ...d.statuses.map(s => [s, s])]
+        .map(([v, l]) => `<option value="${esc(v)}" ${S.st === v ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>
+      ${admin ? `<select id="fwho"><option value="">All members</option>${names.map(m => `<option ${S.who === m ? 'selected' : ''}>${esc(m)}</option>`).join('')}</select>
+      <button class="btn ghost small" id="askAll">📣 Ask everyone for update</button>` : ''}
+    </div>
+    <div id="listWrap">${listHtml()}</div>`;
+}
+function listHtml() {
+  const list = filtered();
+  if (!list.length) return `<div class="empty">${S.d.tasks.length ? 'No tasks match this filter.' : 'No tasks yet.'}</div>`;
+  return `<div class="list">${list.map(card).join('')}</div>`;
+}
+function filtered() {
+  const q = S.q.trim().toLowerCase();
+  return S.d.tasks.filter(t => {
+    if (S.st === 'open' && isClosed(t)) return false;
+    if (S.st === 'overdue' && !t.overdue) return false;
+    if (!['open', 'overdue', 'all'].includes(S.st) && t.status !== S.st) return false;
+    if (S.who && t.assignee !== S.who) return false;
+    if (q && !(t.id + ' ' + t.task + ' ' + t.details + ' ' + t.assignee + ' ' + t.remarks).toLowerCase().includes(q)) return false;
+    return true;
+  }).sort((a, b) => {
+    const ca = isClosed(a), cb = isClosed(b);
+    if (ca !== cb) return ca ? 1 : -1;
+    if (ca) return (b.submitDate || b.lastUpdate || '').localeCompare(a.submitDate || a.lastUpdate || '');
+    if (a.overdue !== b.overdue) return a.overdue ? -1 : 1;
+    return (a.dueDate || '9999').localeCompare(b.dueDate || '9999') || (PRI[a.priority] ?? 1) - (PRI[b.priority] ?? 1) || b.id.localeCompare(a.id);
+  });
+}
+function card(t) {
+  const admin = S.d.me.role === 'admin', closed = isClosed(t);
+  return `<div class="card ${t.overdue ? 'od' : ''} ${closed ? 'closed' : ''}">
+    <div class="row1"><span class="id">${esc(t.id)}</span><span class="pri p-${slug(t.priority)}">${esc(t.priority)}</span><span class="pill s-${slug(t.status)}">${esc(t.status)}</span></div>
+    <div class="title">${esc(t.task)}</div>
+    ${t.details ? `<div class="det">${esc(t.details)}</div>` : ''}
+    <div class="meta">
+      ${admin ? `<span>👤 <b>${esc(t.assignee)}</b></span>` : ''}
+      <span>Assigned ${fd(t.assignDate)}</span>
+      ${t.dueDate ? `<span class="${t.overdue ? 'red' : ''}">Due ${fd(t.dueDate)}${t.overdue ? ' · overdue' : ''}</span>` : ''}
+      ${t.submitDate ? `<span class="green">Submitted ${fd(t.submitDate)}</span>` : ''}
+      ${t.lastUpdate ? `<span>Updated ${fd(t.lastUpdate)} ${esc(t.lastUpdate.split(' ')[1] || '')}</span>` : ''}
+    </div>
+    ${t.remarks ? `<div class="rem">💬 ${esc(t.remarks)}</div>` : ''}
+    <div class="acts">
+      <button class="main" data-a="status" data-id="${esc(t.id)}">✅ Update status</button>
+      ${admin && !closed ? `<button data-a="ask" data-id="${esc(t.id)}">📣 Ask update</button><button data-a="resend" data-id="${esc(t.id)}">📤 Re-send</button>` : ''}
+      ${admin ? `<button data-a="edit" data-id="${esc(t.id)}">✏️ Edit</button>` : ''}
+      <button data-a="hist" data-id="${esc(t.id)}">🕘 History</button>
+    </div></div>`;
+}
+
+function teamView() {
+  const team = S.d.team || [];
+  const open = n => S.d.tasks.filter(t => t.assignee === n && !isClosed(t)).length;
+  return `<div class="hint box">Each member has a <b>personal link</b>. They open it on phone or PC to see their own tasks and submit status, with no login. Send it with “Send link”. If a link leaks, use “New link” and the old one stops working.</div>
+  <div class="list">${team.map(m => `<div class="card ${m.active ? '' : 'inactive'}">
+    <div class="row1"><span class="title" style="margin-right:auto">${esc(m.name)}</span>${m.active ? `<span class="pill s-on-process">${open(m.name)} open</span>` : '<span class="pill">Inactive</span>'}</div>
+    <div class="meta"><span>📧 ${esc(m.email || 'no email')}</span><span>📱 ${esc(m.whatsapp || 'no WhatsApp')}</span></div>
+    <div class="acts">
+      <button class="main" data-a="mshare" data-name="${esc(m.name)}">📤 Send link</button>
+      <button data-a="mcopy" data-name="${esc(m.name)}">🔗 Copy link</button>
+      <button data-a="medit" data-name="${esc(m.name)}">✏️ Edit</button>
+      <button data-a="mreset" data-name="${esc(m.name)}">♻️ New link</button>
+    </div></div>`).join('')}</div>`;
+}
+
+/* ---------- task forms ---------- */
+function taskForm(t) {
+  const isNew = !t;
+  t = t || { priority: 'Medium', status: 'Not Started' };
+  let names = activeTeam().map(m => m.name);
+  if (t.assignee && !names.includes(t.assignee)) names = [t.assignee, ...names];
+  modal(`<h3>${isNew ? 'New task' : 'Edit ' + esc(t.id)}</h3>
+    <form id="tf">
+      <label>Task *<input name="task" required maxlength="200" value="${esc(t.task || '')}" placeholder="e.g. Coil Purchase"></label>
+      <label>Details<textarea name="details" rows="3" placeholder="Instructions, quantities, supplier…">${esc(t.details || '')}</textarea></label>
+      <div class="two">
+        <label>Assign to *<select name="assignee" required><option value="">Select…</option>${opts(names, t.assignee)}</select></label>
+        <label>Priority<select name="priority">${opts(S.d.priorities, t.priority)}</select></label>
+      </div>
+      <div class="two">
+        <label>Due date<input type="date" name="dueDate" value="${esc(t.dueDate || '')}"></label>
+        <label>Status<select name="status">${opts(S.d.statuses, t.status)}</select></label>
+      </div>
+      <div class="checks">
+        <label class="chk"><input type="checkbox" name="notifyEmail" ${isNew ? 'checked' : ''}> 📧 Send email</label>
+        <label class="chk"><input type="checkbox" name="notifyWa" ${isNew ? 'checked' : ''}> 🟢 Send WhatsApp</label>
+      </div>
+      ${isNew ? '' : '<p class="hint">Tick these to notify again, e.g. after re-assigning.</p>'}
+      <div class="btns">${isNew ? '' : '<button type="button" class="btn danger" id="del">Delete</button>'}<span class="sp"></span>
+        <button type="button" class="btn ghost" data-close>Cancel</button><button class="btn">${isNew ? 'Assign task' : 'Save'}</button></div>
+    </form>`);
+  $('#tf').onsubmit = async e => {
+    e.preventDefault();
+    const f = Object.fromEntries(new FormData(e.target));
+    const p = { id: t.id || '', task: f.task.trim(), details: (f.details || '').trim(), assignee: f.assignee, priority: f.priority,
+      dueDate: f.dueDate, status: f.status, notifyEmail: !!f.notifyEmail, notifyWa: !!f.notifyWa };
+    const r = await act('saveTask', p, 'Saving…');
+    if (!r) return;
+    if (r.notify) notifyResult(isNew ? `Task ${r.id} assigned ✓` : `Task ${r.id} saved ✓`, r.notify);
+    else { closeModal(); toast('Saved ✓'); }
+  };
+  if (!isNew) $('#del').onclick = async () => {
+    if (!confirm('Delete task ' + t.id + '? This cannot be undone.')) return;
+    if (await act('deleteTask', { id: t.id }, 'Deleting…')) { closeModal(); toast('Deleted'); }
+  };
+}
+
+function statusForm(t) {
+  modal(`<h3>Update status</h3><div class="sub">${esc(t.id)} · ${esc(t.task)}</div>
+    <form id="sf">
+      <div class="statusPick">${S.d.statuses.map(s => `<label><input type="radio" name="status" value="${esc(s)}" ${s === t.status ? 'checked' : ''}><span class="pill s-${slug(s)}">${esc(s)}</span></label>`).join('')}</div>
+      <label>Progress note / remarks<textarea name="remarks" rows="3" placeholder="e.g. PI received, LC opening tomorrow"></textarea></label>
+      ${t.remarks ? `<p class="hint">Last note: ${esc(t.remarks)}</p>` : ''}
+      <div class="btns"><span class="sp"></span><button type="button" class="btn ghost" data-close>Cancel</button><button class="btn">Submit</button></div>
+    </form>`);
+  $('#sf').onsubmit = async e => {
+    e.preventDefault();
+    const f = Object.fromEntries(new FormData(e.target));
+    if (f.status === t.status && !(f.remarks || '').trim()) return toast('Change the status or add a note.', true);
+    const r = await act('updateStatus', { id: t.id, status: f.status, remarks: f.remarks }, 'Submitting…');
+    if (!r) return;
+    if (r.waLink) {
+      modal(`<h3>Update submitted ✓</h3><div class="sub">Your manager has been notified by email.</div>
+        <a class="btn wa" href="${esc(r.waLink)}" target="_blank" rel="noopener">Also tell manager on WhatsApp</a>
+        <div class="btns"><span class="sp"></span><button class="btn ghost" data-close>Close</button></div>`);
+    } else { closeModal(); toast('Status updated ✓'); }
+  };
+}
+
+function notifyResult(title, r) {
+  const L = [];
+  if (r.missing) L.push(`⚠️ ${esc(r.name)} is not in the Team list.`);
+  if (r.emailSent) L.push(`📧 Email sent to <b>${esc(r.name)}</b>`);
+  if (r.noEmail) L.push(`⚠️ No email saved for ${esc(r.name)}. Add it in the Team tab.`);
+  if (r.emailError) L.push(`⚠️ Email failed: ${esc(r.emailError)}`);
+  if (r.waSent) L.push(`🟢 WhatsApp sent automatically`);
+  if (r.noWa) L.push(`⚠️ No WhatsApp number saved for ${esc(r.name)}.`);
+  modal(`<h3>${esc(title)}</h3><div class="res">${L.map(l => `<div>${l}</div>`).join('')}</div>
+    ${r.waLink ? `<a class="btn wa" href="${esc(r.waLink)}" target="_blank" rel="noopener">🟢 Send on WhatsApp to ${esc(r.name)}</a>
+      <p class="hint">WhatsApp opens with the message already written. Just tap Send.</p>` : ''}
+    <div class="btns"><span class="sp"></span><button class="btn ghost" data-close>Close</button></div>`);
+}
+
+async function askAll() {
+  if (!confirm('Send an update request to everyone who has open tasks?')) return;
+  const list = await act('requestAll', {}, 'Sending requests…');
+  if (!list) return;
+  if (!list.length) return toast('Nobody has open tasks 🎉');
+  modal(`<h3>Update requests</h3><div class="sub">Emails go out automatically. Tap each WhatsApp button to send.</div>
+    ${list.map(r => `<div class="card" style="margin-bottom:8px">
+      <div class="title">${esc(r.name)} <span class="pill s-on-process">${r.count} open${r.overdue ? ' · ' + r.overdue + ' overdue' : ''}</span></div>
+      <div class="meta"><span>${r.emailSent ? '📧 Email sent' : r.noEmail ? '⚠️ No email' : '⚠️ Email failed'}</span><span>${r.waSent ? '🟢 WhatsApp sent' : r.noWa ? '⚠️ No WhatsApp' : ''}</span></div>
+      ${r.waLink ? `<a class="btn wa" style="margin-top:4px" href="${esc(r.waLink)}" target="_blank" rel="noopener">🟢 WhatsApp ${esc(r.name)}</a>` : ''}
+    </div>`).join('')}
+    <div class="btns"><span class="sp"></span><button class="btn ghost" data-close>Done</button></div>`);
+}
+
+async function showHistory(id) {
+  const t = findTask(id);
+  const list = await act('history', { id }, 'Loading history…');
+  if (!list) return;
+  modal(`<h3>History</h3><div class="sub">${esc(id)} · ${esc(t ? t.task : '')}</div>
+    ${list.length ? `<ul class="hist">${list.map(h => `<li><b>${esc(h.action)}</b>${h.details ? '<br>' + esc(h.details) : ''}<br><small>${esc(h.by)} · ${esc(h.at)}</small></li>`).join('')}</ul>` : '<p class="hint">No history yet.</p>'}
+    <div class="btns"><span class="sp"></span><button class="btn ghost" data-close>Close</button></div>`);
+}
+
+/* ---------- team forms ---------- */
+function memberForm(m) {
+  const isNew = !m;
+  m = m || { active: true };
+  modal(`<h3>${isNew ? 'Add team member' : 'Edit ' + esc(m.name)}</h3>
+    <form id="mf">
+      <label>Name *<input name="name" required value="${esc(m.name || '')}"></label>
+      <label>Email<input name="email" type="email" value="${esc(m.email || '')}" placeholder="name@company.com"></label>
+      <label>WhatsApp number<input name="whatsapp" inputmode="tel" value="${esc(m.whatsapp || '')}" placeholder="01712345678 or +8801712345678"></label>
+      <div class="checks">
+        ${isNew ? '<label class="chk"><input type="checkbox" name="send" checked> Send their personal link now</label>'
+                : `<label class="chk"><input type="checkbox" name="active" ${m.active ? 'checked' : ''}> Active</label>`}
+      </div>
+      <div class="btns"><span class="sp"></span><button type="button" class="btn ghost" data-close>Cancel</button><button class="btn">Save</button></div>
+    </form>`);
+  $('#mf').onsubmit = async e => {
+    e.preventDefault();
+    const f = Object.fromEntries(new FormData(e.target));
+    const r = await act('saveMember', { originalName: m.name || '', name: f.name.trim(), email: f.email, whatsapp: f.whatsapp, active: isNew ? true : !!f.active }, 'Saving…');
+    if (!r) return;
+    if (isNew && f.send) return shareLink(r.name);
+    closeModal(); toast('Saved ✓');
+  };
+}
+async function shareLink(name) {
+  const r = await act('shareLink', { name }, 'Sending link…');
+  if (r) notifyResult('Portal link for ' + name, r);
+}
+function copyLink(name) {
+  const m = findMember(name); if (!m) return;
+  const fallback = () => {
+    modal(`<h3>Link for ${esc(name)}</h3><input id="lnk" readonly value="${esc(m.link)}">
+      <p class="hint">Select the link and copy it.</p><div class="btns"><span class="sp"></span><button class="btn ghost" data-close>Close</button></div>`);
+    const i = $('#lnk'); i.focus(); i.select();
+    try { if (document.execCommand('copy')) toast('Link copied ✓'); } catch (e) {}
+  };
+  if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(m.link).then(() => toast('Link copied ✓'), fallback);
+  else fallback();
+}
+async function resetKey(name) {
+  if (!confirm('Create a new link for ' + name + '? Their old link will stop working.')) return;
+  if (await act('resetKey', { name }, 'Resetting…') && confirm('New link created. Send it to ' + name + ' now?')) shareLink(name);
+}
+
+/* ---------- events ---------- */
+$('#refresh').onclick = () => { if (!KEY) return; toast('Refreshing…'); init(); };
+$('#menuBtn').onclick = menuView;
+$('#installBtn').onclick = doInstall;
+if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+$('#fab').onclick = () => S.tab === 'team' ? memberForm() : taskForm();
+$('#tabs').onclick = e => { const b = e.target.closest('button[data-tab]'); if (b) { S.tab = b.dataset.tab; render(); } };
+$('#ov').onclick = e => { if (e.target.id === 'ov' || e.target.closest('[data-close]')) closeModal(); };
+$('#main').addEventListener('input', e => { if (e.target.id === 'q') { S.q = e.target.value; $('#listWrap').innerHTML = listHtml(); } });
+$('#main').addEventListener('change', e => {
+  if (e.target.id === 'fst') { S.st = e.target.value; render(); }
+  if (e.target.id === 'fwho') { S.who = e.target.value; $('#listWrap').innerHTML = listHtml(); }
+});
+$('#main').addEventListener('click', e => {
+  const st = e.target.closest('[data-st]');
+  if (st) { S.st = st.dataset.st; render(); return; }
+  if (e.target.closest('#askAll')) return askAll();
+  const b = e.target.closest('button[data-a]'); if (!b) return;
+  const id = b.dataset.id, name = b.dataset.name;
+  switch (b.dataset.a) {
+    case 'status': return statusForm(findTask(id));
+    case 'edit': return taskForm(findTask(id));
+    case 'hist': return showHistory(id);
+    case 'ask': return act('requestUpdate', { id }, 'Requesting update…').then(r => r && notifyResult('Update requested ✓', r));
+    case 'resend': return act('resendAssign', { id }, 'Re-sending…').then(r => r && notifyResult('Task re-sent ✓', r));
+    case 'medit': return memberForm(findMember(name));
+    case 'mshare': return shareLink(name);
+    case 'mcopy': return copyLink(name);
+    case 'mreset': return resetKey(name);
+  }
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#ov').hidden) closeModal(); });
+
+init();
+</script>
+</body>
+</html>
